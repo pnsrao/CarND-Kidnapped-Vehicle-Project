@@ -17,47 +17,18 @@
 
 #include "particle_filter.h"
 
-bool open_loop = false;
-bool genie_pos = false;
-double gt_x;
-double gt_y;
-double gt_theta;
-int time_step = -1;
-
 using namespace std;
 
 void ParticleFilter::init(double x, double y, double theta, double std[]) {
-  time_step++;
-  gt_x = x;gt_y = y;gt_theta = theta;
-  cout<<time_step<<" gt "<<gt_x<<" "<<gt_y<<" "<<gt_theta<<endl;
-  if(open_loop || genie_pos){
-    if(!is_initialized){
-      num_particles = 1;
-      Particle p;p.x = x;p.y = y;p.weight =  1;p.theta = theta;
-      particles.clear();
-      particles.push_back(p);
-      is_initialized = true;
-      return;
-    }
-    else if(genie_pos){
-      particles[0].x = x;particles[0].y = y;particles[0].theta= theta;
-      return;
-    }
-    else{
-      return;
-    }
-  }
-  if(is_initialized){return;}
-	// TODO: Set the number of particles. Initialize all particles to first position (based on estimates of 
+	// Set the number of particles. Initialize all particles to first position (based on estimates of 
 	//   x, y, theta and their uncertainties from GPS) and all weights to 1. 
 	// Add random Gaussian noise to each particle.
-	// NOTE: Consult particle_filter.h for more information about this method (and others in this file).
   
         default_random_engine gen;
   	// This line creates a normal (Gaussian) distribution for x.
 	normal_distribution<double> dist_x(x, std[0]);
 	
-	// TODO: Create normal distributions for y and theta.
+	// Create normal distributions for y and theta.
 	normal_distribution<double> dist_y(y, std[1]);
 	normal_distribution<double> dist_theta(theta, std[2]);
 	
@@ -75,11 +46,10 @@ void ParticleFilter::init(double x, double y, double theta, double std[]) {
 }
 
 void ParticleFilter::prediction(double delta_t, double std_pos[], double velocity, double yaw_rate) {
-	// TODO: Add measurements to each particle and add random Gaussian noise.
+	// Add measurements to each particle and add random Gaussian noise.
 	// NOTE: When adding noise you may find std::normal_distribution and std::default_random_engine useful.
 	//  http://en.cppreference.com/w/cpp/numeric/random/normal_distribution
 	//  http://www.cplusplus.com/reference/random/default_random_engine/
-  if(genie_pos){return;}
   bool verbose = false;
         default_random_engine gen;
   	// This line creates a normal (Gaussian) distribution for x.
@@ -97,16 +67,16 @@ void ParticleFilter::prediction(double delta_t, double std_pos[], double velocit
 	  else{
 	    particles[ii].x += velocity*cos(temp_theta)*delta_t;
 	  }
-	  if(!open_loop){particles[ii].x += dist_x(gen);}
+	  particles[ii].x += dist_x(gen);
 	  if(yaw_rate){
 	    particles[ii].y += (velocity/yaw_rate)*(cos(temp_theta)-cos(temp_theta+yaw_rate*delta_t));
 	  }
 	  else{
 	    particles[ii].y += velocity*sin(temp_theta)*delta_t;
 	  }
-	  if(!open_loop){particles[ii].y += dist_y(gen);}
+	  particles[ii].y += dist_y(gen);
 	  particles[ii].theta += yaw_rate*delta_t;
-	  if(!open_loop){particles[ii].theta += dist_theta(gen);}
+	  particles[ii].theta += dist_theta(gen);
 	if(verbose){cout <<"Prediction done "<<particles[ii].x<<" "<<particles[ii].y<<endl;}
 	}
 }
@@ -206,7 +176,6 @@ void ParticleFilter::resample() {
 	// TODO: Resample particles with replacement with probability proportional to their weight. 
 	// NOTE: You may find std::discrete_distribution helpful here.
 	//   http://en.cppreference.com/w/cpp/numeric/random/discrete_distribution
-  if(genie_pos || open_loop){return;}
   vector<double> myweights(num_particles);
   default_random_engine gen;
   for(int ii=0;ii<num_particles;ii++){
